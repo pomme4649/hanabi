@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>花火玉 配色シミュレーター</title>
+<style>
+:root{
+  --bg1:#091225;
+  --bg2:#030813;
+  --panel:#0c1628ee;
+  --line:#334155;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --btn1:#22324d;
+  --btn2:#162235;
+  --launch1:#f59e0b;
+  --launch2:#b45309;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:radial-gradient(1400px 1000px at 50% 120%, var(--bg1), var(--bg2) 65%);
+}
+.topbar{
+  padding:12px 16px;
+  background:#00000055;
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.title{font-size:20px;font-weight:700;letter-spacing:.02em;}
+.sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.app{
+  display:grid;
+  grid-template-columns:440px 1fr;
+  gap:14px;
+  padding:14px;
+  min-height:calc(100vh - 64px);
+}
+.left,.right{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:18px;
+  overflow:hidden;
+}
+.left{display:grid;grid-template-rows:auto auto 1fr auto;}
+.section{padding:14px 14px 0;}
+.sectionTitle{font-size:14px;font-weight:700;margin-bottom:8px;}
+.group{display:flex;flex-wrap:wrap;gap:8px;}
+.btn{
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:10px 14px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  background:linear-gradient(180deg,var(--btn1),var(--btn2));
+}
+.btn:active{transform:translateY(1px);}
+.btn.active{outline:2px solid #fff;}
+
+.btn.color-red{background:#ff5a5a;color:#fff;}
+.btn.color-yellow{background:#ffd93d;color:#2b2400;}
+.btn.color-green{background:#5ee173;color:#0f2a12;}
+.btn.color-blue{background:#4da3ff;color:#fff;}
+.btn.color-pink{background:#ff8ad8;color:#4b1034;}
+.btn.color-blink{background:#ffffff;color:#222;}
+
+.btn.mode.peony{background:linear-gradient(180deg,var(--btn1),var(--btn2));}
+.btn.mode.chrys{background:linear-gradient(180deg,var(--btn1),var(--btn2));}
+.btn.set.classic{background:linear-gradient(180deg,var(--btn1),var(--btn2));}
+.btn.set.twotone{background:linear-gradient(180deg,var(--btn1),var(--btn2));}
+
+.btn.launch{
+  background:linear-gradient(180deg,var(--launch1),var(--launch2));
+  color:#2b1600;
+  font-size:16px;
+  padding:13px 22px;
+  box-shadow:0 8px 22px rgba(245,158,11,.25);
+}
+.btn.reset{
+  padding:8px 12px;
+  font-size:12px;
+  opacity:.92;
+}
+
+#shellWrap{padding:14px;}
+#shellCanvas{
+  width:100%;
+  height:auto;
+  display:block;
+  background:#020611;
+  border-radius:14px;
+}
+.legend{
+  padding:0 14px 14px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.6;
+}
+.right{display:grid;grid-template-rows:auto 1fr;}
+.rightHead{padding:14px 14px 0;font-size:14px;font-weight:700;}
+#skyWrap{padding:14px;}
+#skyCanvas{
+  width:100%;
+  height:auto;
+  display:block;
+  background:#020611;
+  border-radius:14px;
+}
+.toast{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:16px;
+  z-index:30;
+  background:#00000080;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:12px;
+  color:var(--text);
+  backdrop-filter:blur(6px);
+  display:none;
+}
+@media (max-width:1100px){
+  .app{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="title">花火玉 配色シミュレーター</div>
+  <div class="sub">PC版。点滅は開花中は見えず、開ききった後に白くピカピカ点滅。菊は尾を引く残像表現。</div>
+</div>
+
+<div class="app">
+  <div class="left">
+    <div class="section">
+      <div class="sectionTitle">色</div>
+      <div class="group">
+        <button class="btn color-red active" data-color="red">赤</button>
+        <button class="btn color-yellow" data-color="yellow">黄</button>
+        <button class="btn color-green" data-color="green">緑</button>
+        <button class="btn color-blue" data-color="blue">青</button>
+        <button class="btn color-pink" data-color="pink">ピンク</button>
+        <button class="btn color-blink" data-color="white">点滅</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sectionTitle">星の余韻</div>
+      <div class="group">
+        <button id="typePeony" class="btn mode peony active">牡丹</button>
+        <button id="typeChrysanthemum" class="btn mode chrys">菊</button>
+      </div>
+
+      <div class="sectionTitle" style="margin-top:14px;">セット</div>
+      <div class="group">
+        <button id="presetClassic" class="btn set classic">古典</button>
+        <button id="presetTwoTone" class="btn set twotone">二重芯</button>
+        <button id="presetTripleCore" class="btn set classic">三重芯</button>
+      </div>
+
+      <div class="sectionTitle" style="margin-top:14px;">一括操作</div>
+      <div class="group">
+        <button id="fillAllBtn" class="btn set classic">単色</button>
+        <button id="fillRing1Btn" class="btn set twotone">1層</button>
+        <button id="fillRing2Btn" class="btn set twotone">2層</button>
+        <button id="fillRing3Btn" class="btn set twotone">3層</button>
+        <button id="fillRing4Btn" class="btn set twotone">4層</button>
+        <button id="fillRing5Btn" class="btn set twotone">5層</button>
+      </div>
+    </div>
+
+    <div id="shellWrap">
+      <canvas id="shellCanvas" width="780" height="780"></canvas>
+    </div>
+
+    <div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:0 14px 14px;">
+        <button id="launchBtn" class="btn launch">打ち上げる</button>
+        <button id="resetBtn" class="btn reset">リセット</button>
+      </div>
+      <div class="legend">
+        星枠をクリックすると、選択中の色が入ります。もう一度クリックでその星だけ消えます。<br>
+        単色ボタンで全体を一括塗り、1〜5層ボタンで層ごとの一括色指定もできます。<br>
+        点滅は開花中は見えず、開ききった後に白くピカピカ点滅します。菊は尾を強く残します。
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="rightHead">空での見え方</div>
+    <div id="skyWrap">
+      <canvas id="skyCanvas" width="1200" height="760"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RINGS = [
+  {radius:0.88, count:28},
+  {radius:0.70, count:22},
+  {radius:0.52, count:18},
+  {radius:0.33, count:12},
+  {radius:0.15, count:6}
+];
+
+let selectedColor = 'red';
+let fireworkType = 'peony';
+let cells = [];
+let particles = [];
+let launchers = [];
+let audioCtx = null;
+
+const NORMAL_VANISH_AT = 0.98;
+const BLINK_VANISH_AT = 0.995;
+
+const shellCanvas = document.getElementById('shellCanvas');
+const shellCtx = shellCanvas.getContext('2d');
+const skyCanvas = document.getElementById('skyCanvas');
+const skyCtx = skyCanvas.getContext('2d');
+const toast = document.getElementById('toast');
+
+function showToast(text){
+  toast.textContent = text;
+  toast.style.display = 'block';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toast.style.display='none', 1000);
+}
+
+function ensureAudio(){
+  if (!audioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) audioCtx = new Ctx();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playBoom(){
+  if (!audioCtx) return;
+  const bufferSize = Math.floor(audioCtx.sampleRate * 0.45);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for(let i=0;i<bufferSize;i++){
+    const env = Math.pow(1 - i / bufferSize, 2.5);
+    data[i] = (Math.random()*2-1)*env;
+  }
+
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  const low = audioCtx.createBiquadFilter();
+
+  low.type='lowpass';
+  low.frequency.value=500;
+
+  gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.42);
+
+  src.buffer = buffer;
+  src.connect(low);
+  low.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+}
+
+function initCells(){
+  cells = [];
+  RINGS.forEach((r, ringIndex)=>{
+    for(let i=0;i<r.count;i++){
+      const a = (Math.PI*2*i)/r.count - Math.PI/2;
+      cells.push({
+        ring:ringIndex,
+        index:i,
+        rNorm:r.radius,
+        angle:a,
+        fill:'none'
+      });
+    }
+  });
+}
+
+function colorForKey(key, frame=0, opened=1){
+  if (key === 'red') return '#ff5a5a';
+  if (key === 'yellow') return '#ffd93d';
+  if (key === 'green') return '#5ee173';
+  if (key === 'blue') return '#4da3ff';
+  if (key === 'pink') return '#ff8ad8';
+
+  if (key === 'white'){
+    if (opened < 0.80) return null;
+    return Math.floor(frame/2) % 2 === 0 ? '#ffffff' : '#222222';
+  }
+
+  return null;
+}
+
+function drawShell(frame=0){
+  const w = shellCanvas.width;
+  const h = shellCanvas.height;
+  const cx = w/2;
+  const cy = h/2;
+  const R = Math.min(w,h)*0.39;
+
+  shellCtx.clearRect(0,0,w,h);
+  shellCtx.fillStyle = '#020611';
+  shellCtx.fillRect(0,0,w,h);
+
+  shellCtx.beginPath();
+  shellCtx.arc(cx,cy,R+18,0,Math.PI*2);
+  shellCtx.fillStyle = '#1a2538';
+  shellCtx.fill();
+
+  shellCtx.beginPath();
+  shellCtx.arc(cx,cy,R,0,Math.PI*2);
+  shellCtx.fillStyle = '#0b1322';
+  shellCtx.fill();
+  shellCtx.strokeStyle = '#73839b';
+  shellCtx.lineWidth = 2;
+  shellCtx.stroke();
+
+  RINGS.forEach(r=>{
+    shellCtx.beginPath();
+    shellCtx.arc(cx,cy,R*r.radius,0,Math.PI*2);
+    shellCtx.strokeStyle = 'rgba(255,255,255,0.10)';
+    shellCtx.setLineDash([6,6]);
+    shellCtx.stroke();
+    shellCtx.setLineDash([]);
+  });
+
+  cells.forEach(cell=>{
+    const x = cx + Math.cos(cell.angle)*(R*cell.rNorm);
+    const y = cy + Math.sin(cell.angle)*(R*cell.rNorm);
+
+    shellCtx.beginPath();
+    shellCtx.arc(x,y,11,0,Math.PI*2);
+    shellCtx.fillStyle = '#101b2d';
+    shellCtx.fill();
+    shellCtx.lineWidth = 2;
+    shellCtx.strokeStyle = 'rgba(255,255,255,0.26)';
+    shellCtx.stroke();
+
+    if(cell.fill !== 'none'){
+      shellCtx.beginPath();
+      shellCtx.arc(x,y,8.5,0,Math.PI*2);
+      const col = (cell.fill === 'white') ? '#ffffff' : colorForKey(cell.fill, frame, 1);
+      shellCtx.fillStyle = col;
+      shellCtx.shadowBlur = 12;
+      shellCtx.shadowColor = col;
+      shellCtx.fill();
+      shellCtx.shadowBlur = 0;
+    } else {
+      shellCtx.beginPath();
+      shellCtx.arc(x,y,4.2,0,Math.PI*2);
+      shellCtx.fillStyle = 'rgba(255,255,255,0.16)';
+      shellCtx.fill();
+    }
+  });
+
+  shellCtx.beginPath();
+  shellCtx.arc(cx,cy,8,0,Math.PI*2);
+  shellCtx.fillStyle = '#9aa3b2';
+  shellCtx.fill();
+}
+
+function cellAtPosition(mx,my){
+  const w = shellCanvas.width;
+  const h = shellCanvas.height;
+  const cx = w/2;
+  const cy = h/2;
+  const R = Math.min(w,h)*0.39;
+
+  for(const cell of cells){
+    const x = cx + Math.cos(cell.angle)*(R*cell.rNorm);
+    const y = cy + Math.sin(cell.angle)*(R*cell.rNorm);
+    if(Math.hypot(mx-x,my-y) <= 18) return cell;
+  }
+  return null;
+}
+
+function canvasPointFromEvent(canvas, clientX, clientY){
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  return {
+    x:(clientX-rect.left)*sx,
+    y:(clientY-rect.top)*sy
+  };
+}
+
+function handleShellTap(clientX, clientY){
+  ensureAudio();
+  const p = canvasPointFromEvent(shellCanvas, clientX, clientY);
+  const cell = cellAtPosition(p.x, p.y);
+  if(!cell) return;
+  cell.fill = (cell.fill === selectedColor) ? 'none' : selectedColor;
+  showToast(cell.fill === 'none' ? 'なし' : selectedColor);
+  drawShell();
+}
+
+shellCanvas.addEventListener('click', e=>handleShellTap(e.clientX,e.clientY));
+
+function computeFitScale(){
+  let maxRNorm = 0;
+  cells.forEach(c=>{
+    if(c.fill !== 'none') maxRNorm = Math.max(maxRNorm, c.rNorm);
+  });
+  if(maxRNorm === 0) maxRNorm = 0.88;
+
+  const safeRadius = Math.min(skyCanvas.width, skyCanvas.height) * 0.155;
+  return safeRadius / maxRNorm;
+}
+
+function launchSimulation(){
+  ensureAudio();
+  resetSky();
+  particles = [];
+  launchers = [{
+    x:skyCanvas.width/2,
+    y:skyCanvas.height*0.82,
+    targetY:skyCanvas.height*0.50,
+    vy:-9.2,
+    exploded:false
+  }];
+}
+
+function explodeAt(x,y){
+  playBoom();
+  const baseR = computeFitScale();
+
+  cells.forEach(cell=>{
+    if(cell.fill === 'none') return;
+
+    const speedFactor = fireworkType === 'chrysanthemum' ? 0.040 : 0.037;
+    const life = fireworkType === 'chrysanthemum' ? 96 : 84;
+
+    particles.push({
+      x:x,
+      y:y,
+      vx:Math.cos(cell.angle)*(baseR*cell.rNorm*speedFactor),
+      vy:Math.sin(cell.angle)*(baseR*cell.rNorm*speedFactor),
+      fill:cell.fill,
+      life:life,
+      maxLife:life,
+      size:fireworkType === 'chrysanthemum' ? 5.0 : 6.0,
+      opened:0,
+      drag:fireworkType === 'chrysanthemum' ? 0.991 : 0.996
+    });
+  });
+}
+
+function resetSky(){
+  skyCtx.fillStyle = '#020611';
+  skyCtx.fillRect(0,0,skyCanvas.width,skyCanvas.height);
+}
+
+function hexToRgba(hex, a){
+  const c = hex.replace('#','');
+  const n = parseInt(c,16);
+  const r = (n>>16)&255;
+  const g = (n>>8)&255;
+  const b = n&255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function drawBackgroundStars(){
+  for(let i=0;i<8;i++){
+    const x=(i*173+111)%skyCanvas.width;
+    const y=(i*139+74)%(skyCanvas.height*0.55);
+    skyCtx.fillStyle='rgba(255,255,255,0.05)';
+    skyCtx.fillRect(x,y,2,2);
+  }
+}
+
+function updateSky(frame){
+  resetSky();
+  drawBackgroundStars();
+
+  for(const l of launchers){
+    if(l.exploded) continue;
+
+    l.y += l.vy;
+    l.vy += 0.085;
+
+    skyCtx.beginPath();
+    skyCtx.arc(l.x,l.y,4,0,Math.PI*2);
+    skyCtx.fillStyle = '#fff0b0';
+    skyCtx.shadowBlur = 16;
+    skyCtx.shadowColor = '#fff0b0';
+    skyCtx.fill();
+    skyCtx.shadowBlur = 0;
+
+    if(l.y <= l.targetY || l.vy >= -0.7){
+      l.exploded = true;
+      explodeAt(skyCanvas.width/2, skyCanvas.height/2);
+    }
+  }
+
+  particles = particles.filter(p=>p.life>0);
+
+  particles.forEach(p=>{
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += (fireworkType==='chrysanthemum' ? 0.0075 : 0.013);
+    p.vx *= p.drag;
+    p.vy *= p.drag;
+    p.life -= 1;
+    p.opened = Math.min(1, 1 - (p.life / p.maxLife));
+
+    const vanishAt = (p.fill === 'white') ? BLINK_VANISH_AT : NORMAL_VANISH_AT;
+    if (p.opened >= vanishAt){
+      p.life = 0;
+      return;
+    }
+
+    const col = colorForKey(p.fill, frame, p.opened);
+
+    if(col !== null && p.fill === 'white' && p.opened >= 0.80){
+      const blinkOn = Math.floor(frame/2)%2===0;
+
+      skyCtx.beginPath();
+      skyCtx.arc(p.x, p.y, p.size + 3.0, 0, Math.PI*2);
+      skyCtx.fillStyle = blinkOn
+        ? 'rgba(255,255,255,0.30)'
+        : 'rgba(34,34,34,0.10)';
+      skyCtx.fill();
+    }
+
+    if(col !== null && fireworkType==='chrysanthemum'){
+      for(let k=1;k<=10;k++){
+        const tx = p.x - p.vx * (k * 2.8);
+        const ty = p.y - p.vy * (k * 2.8);
+        const alpha = 0.48 / (k * 0.9);
+
+        skyCtx.beginPath();
+        skyCtx.arc(tx, ty, Math.max(0.9, p.size - k*0.42), 0, Math.PI*2);
+        skyCtx.fillStyle = hexToRgba(col, Math.max(0.03, alpha));
+        skyCtx.fill();
+      }
+    }
+
+    if (col !== null){
+      skyCtx.beginPath();
+      skyCtx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      skyCtx.fillStyle = hexToRgba(col, 1);
+
+      if (p.fill === 'white' && p.opened >= 0.80){
+        const blinkOn = Math.floor(frame/2)%2===0;
+        skyCtx.shadowBlur = blinkOn ? 18 : 2;
+        skyCtx.shadowColor = blinkOn ? '#ffffff' : '#222222';
+      } else {
+        skyCtx.shadowBlur = 10;
+        skyCtx.shadowColor = col;
+      }
+
+      skyCtx.fill();
+      skyCtx.shadowBlur = 0;
+    }
+  });
+
+  drawShell(frame);
+  requestAnimationFrame(updateSky);
+}
+
+function clearAll(){
+  cells.forEach(c=>c.fill='none');
+  drawShell();
+}
+
+function presetClassic(){
+  clearAll();
+  cells.forEach(c=>{
+    if(c.ring===0) c.fill='red';
+    if(c.ring===1) c.fill='yellow';
+    if(c.ring===2) c.fill='yellow';
+    if(c.ring===3) c.fill='white';
+    if(c.ring===4) c.fill='white';
+  });
+  drawShell();
+}
+
+function presetTwoTone(){
+  clearAll();
+  cells.forEach(c=>{
+    if(c.ring===0) c.fill='blue';
+    if(c.ring===1) c.fill='blue';
+    if(c.ring===2) c.fill='pink';
+    if(c.ring===3) c.fill='white';
+    if(c.ring===4) c.fill='white';
+  });
+  drawShell();
+}
+
+function presetTripleCore(){
+  clearAll();
+  cells.forEach(c=>{
+    if(c.ring===0) c.fill='red';
+    if(c.ring===1) c.fill='yellow';
+    if(c.ring===2) c.fill='blue';
+    if(c.ring===3) c.fill='pink';
+    if(c.ring===4) c.fill='white';
+  });
+  drawShell();
+}
+
+function fillAllSelected(){
+  cells.forEach(c=>{ c.fill = selectedColor; });
+  drawShell();
+}
+
+function fillRingSelected(ringIndex){
+  cells.forEach(c=>{
+    if(c.ring===ringIndex) c.fill = selectedColor;
+  });
+  drawShell();
+}
+
+document.querySelectorAll('[data-color]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    selectedColor = btn.dataset.color;
+    document.querySelectorAll('[data-color]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+document.getElementById('launchBtn').addEventListener('click', launchSimulation);
+document.getElementById('resetBtn').addEventListener('click', clearAll);
+
+document.getElementById('presetClassic').addEventListener('click', presetClassic);
+document.getElementById('presetTwoTone').addEventListener('click', presetTwoTone);
+document.getElementById('presetTripleCore').addEventListener('click', presetTripleCore);
+
+document.getElementById('fillAllBtn').addEventListener('click', fillAllSelected);
+document.getElementById('fillRing1Btn').addEventListener('click', ()=>fillRingSelected(0));
+document.getElementById('fillRing2Btn').addEventListener('click', ()=>fillRingSelected(1));
+document.getElementById('fillRing3Btn').addEventListener('click', ()=>fillRingSelected(2));
+document.getElementById('fillRing4Btn').addEventListener('click', ()=>fillRingSelected(3));
+document.getElementById('fillRing5Btn').addEventListener('click', ()=>fillRingSelected(4));
+
+document.getElementById('typePeony').addEventListener('click', ()=>{
+  fireworkType = 'peony';
+  document.getElementById('typePeony').classList.add('active');
+  document.getElementById('typeChrysanthemum').classList.remove('active');
+});
+
+document.getElementById('typeChrysanthemum').addEventListener('click', ()=>{
+  fireworkType = 'chrysanthemum';
+  document.getElementById('typeChrysanthemum').classList.add('active');
+  document.getElementById('typePeony').classList.remove('active');
+});
+
+window.addEventListener('pointerdown', ensureAudio, {passive:true});
+
+initCells();
+drawShell();
+resetSky();
+updateSky(0);
+</script>
+</body>
+</html>
